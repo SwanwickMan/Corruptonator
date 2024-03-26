@@ -17,14 +17,28 @@
         }
     }
 
-    static double getCorruptionPercentage()
+    public enum Type
+    {
+        PERCENT,
+        NUMBER
+    }
+
+    static (double factor, Type type) getCorruptionFactor()
     {
         while (true)
         {
             try
             {
-                Console.Write("Input corruption percentage >>> ");
-                return Convert.ToDouble(Console.ReadLine()) / 100;
+                Console.Write("Input corruption factor >>> ");
+                string input = Console.ReadLine();
+                if (input.EndsWith("%"))
+                {
+                    return (Convert.ToDouble(input.Trim('%')) / 100, Type.PERCENT);
+                }
+                else
+                {
+                    return (Convert.ToDouble(input), Type.NUMBER);
+                }
             }
             catch { Console.WriteLine("Bad input given"); }
         }
@@ -36,13 +50,22 @@
         return file;
     }
 
-    static HashSet<int> getBytesToCorrupt(double corruptionPercentage, byte[] file)
+    static HashSet<int> getBytesToCorrupt(double corruptionFactor, byte[] file, Type type)
     {
         HashSet<int> indices = new HashSet<int>();
         Random random = new Random();
+        int amountToCorrupt;
 
-        corruptionPercentage = Math.Min(corruptionPercentage, 1); // ensure maximum if file size is selected
-        int amountToCorrupt = Convert.ToInt32(file.Length * corruptionPercentage);
+        if (type == Type.PERCENT)
+        {
+            corruptionFactor = Math.Min(corruptionFactor, 1); // ensure maximum if file size is selected
+            amountToCorrupt = Convert.ToInt32(file.Length * corruptionFactor);
+        }
+        else
+        {
+            corruptionFactor = Math.Min(corruptionFactor, file.Length);
+            amountToCorrupt = Convert.ToInt32(corruptionFactor);
+        }
 
         while (indices.Count() < amountToCorrupt)
         {
@@ -52,10 +75,10 @@
         return indices;
     }
 
-    static void corruptFile(double corruptionPercentage, byte[] file, string filepath)
+    static void corruptFile(double corruptionFactor, byte[] file, string filepath, Type type)
     {
         Random random = new Random();
-        HashSet<int> indicesToCorrupt = getBytesToCorrupt(corruptionPercentage, file);
+        HashSet<int> indicesToCorrupt = getBytesToCorrupt(corruptionFactor, file, type);
         foreach (int i in indicesToCorrupt)
         {
             file[i] = (byte)random.Next(0, 256); // start to corrupt stuff
@@ -70,8 +93,9 @@
     {
         string filepath = getFilePath(args);
         byte[] file = readFile(filepath);
-        double corruptionPercentage = getCorruptionPercentage();
+        var result = getCorruptionFactor();
 
-        corruptFile(corruptionPercentage, file, filepath);
+
+        corruptFile(result.factor, file, filepath, result.type);
     }
 }
